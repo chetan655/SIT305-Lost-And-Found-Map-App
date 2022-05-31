@@ -7,6 +7,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -38,14 +39,14 @@ import java.util.List;
 public class NewAdvertActivity extends AppCompatActivity {
 
     private static final String TAG = "New Advert Activity";
-    RadioGroup lostFoundRadioGroup;
+    RadioGroup radioBtnsGroup;
     RadioButton selectedRadioButton;
-    EditText newNameEditText;
-    EditText newPhoneEditText;
-    EditText newDescriptionEditText;
-    EditText newDateEditText;
-    Button newGetCurrentLocationButton;
-    Button newSaveButton;
+    EditText itemNameETV;
+    EditText phoneETV;
+    EditText itemDescriptionETV;
+    EditText itemDateETV;
+    Button getItemCurrentLocationBtn;
+    Button itemSaveBtn;
     String placeName, placeLat, placeLng;
 
     @Override
@@ -53,18 +54,19 @@ public class NewAdvertActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
 
+    @SuppressLint("MissingPermission")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_new_advert);
 
-        lostFoundRadioGroup = findViewById(R.id.radioBtnsGroup);
-        newNameEditText = findViewById(R.id.itemNameETV);
-        newPhoneEditText = findViewById(R.id.phoneETV);
-        newDescriptionEditText = findViewById(R.id.itemDescriptionETV);
-        newDateEditText = findViewById(R.id.itemDateETV);
-        newGetCurrentLocationButton = findViewById(R.id.getItemCurrentLocationBtn);
-        newSaveButton = findViewById(R.id.itemSaveBtn);
+        radioBtnsGroup = findViewById(R.id.radioBtnsGroup);
+        itemNameETV = findViewById(R.id.itemNameETV);
+        phoneETV = findViewById(R.id.phoneETV);
+        itemDescriptionETV = findViewById(R.id.itemDescriptionETV);
+        itemDateETV = findViewById(R.id.itemDateETV);
+        getItemCurrentLocationBtn = findViewById(R.id.getItemCurrentLocationBtn);
+        itemSaveBtn = findViewById(R.id.itemSaveBtn);
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(NewAdvertActivity.this, new String[] {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 0);
@@ -97,22 +99,25 @@ public class NewAdvertActivity extends AppCompatActivity {
             }
         });
 
-        newGetCurrentLocationButton.setOnClickListener(view -> {
-            // Use fields to define the data types to return.
-            List<Place.Field> placeFields = Arrays.asList(Place.Field.NAME, Place.Field.LAT_LNG);
+        getItemCurrentLocationBtn.setOnClickListener(view -> {
 
-            // Use the builder to create a FindCurrentPlaceRequest.
+            List<Place.Field> placeFields = Arrays.asList(Place.Field.NAME, Place.Field.LAT_LNG);
             FindCurrentPlaceRequest request = FindCurrentPlaceRequest.newInstance(placeFields);
 
-            // Call findCurrentPlace and handle the response (first check that the user has granted permission).
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+
                 Task<FindCurrentPlaceResponse> placeResponse = placesClient.findCurrentPlace(request);
+
                 placeResponse.addOnCompleteListener(task -> {
+
                     if (task.isSuccessful()){
+
                         FindCurrentPlaceResponse response = task.getResult();
+
                         placeName = response.getPlaceLikelihoods().get(0).getPlace().getName();
                         placeLat = Double.toString(response.getPlaceLikelihoods().get(0).getPlace().getLatLng().latitude);
                         placeLng = Double.toString(response.getPlaceLikelihoods().get(0).getPlace().getLatLng().longitude);
+
                         autocompleteFragment.setText(placeName);
 
                         for (PlaceLikelihood placeLikelihood : response.getPlaceLikelihoods()) {
@@ -120,8 +125,10 @@ public class NewAdvertActivity extends AppCompatActivity {
                                     placeLikelihood.getPlace().getName(),
                                     placeLikelihood.getLikelihood()));
                         }
+
                     } else {
                         Exception exception = task.getException();
+
                         if (exception instanceof ApiException) {
                             ApiException apiException = (ApiException) exception;
                             Log.e(TAG, "Place not found: " + apiException.getStatusCode());
@@ -129,8 +136,6 @@ public class NewAdvertActivity extends AppCompatActivity {
                     }
                 });
             } else {
-                // A local method to request required permissions;
-                // See https://developer.android.com/training/permissions/requesting
                 if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     ActivityCompat.requestPermissions(NewAdvertActivity.this, new String[] {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 0);
                 }
@@ -140,16 +145,17 @@ public class NewAdvertActivity extends AppCompatActivity {
 
         DatabaseHelper db = new DatabaseHelper(this);
 
-        newSaveButton.setOnClickListener(view -> {
-            int selectedId = lostFoundRadioGroup.getCheckedRadioButtonId();
-            String name = newNameEditText.getText().toString();
-            String phone = newPhoneEditText.getText().toString();
-            String description = newDescriptionEditText.getText().toString();
-            String date = newDateEditText.getText().toString();
+        itemSaveBtn.setOnClickListener(view -> {
+            int selectedId = radioBtnsGroup.getCheckedRadioButtonId();
+            String name;
+            name = itemNameETV.getText().toString();
+            String phone = phoneETV.getText().toString();
+            String description = itemDescriptionETV.getText().toString();
+            String date = itemDateETV.getText().toString();
 
             if (name.equals("") || phone.equals("") || description.equals("") || date.equals("") || placeName == null || placeLat == null || placeLng == null) { // check for empty fields
                 Toast.makeText(this, "Please fill in all the details", Toast.LENGTH_SHORT).show();
-            } else if (selectedId == -1) { // check if radio button selected
+            } else if (selectedId == -1) {
                 Toast.makeText(this, "Please select post type", Toast.LENGTH_SHORT).show();
             } else {
                 selectedRadioButton = findViewById(selectedId);
